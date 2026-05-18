@@ -36,6 +36,9 @@ under standard engineering hygiene (typing, tests, lint, CI).
 
 - **Python 3.11+**, `src/` layout, packaged via `pyproject.toml`.
 - **LangChain 1.0** (`langchain.agents.create_agent`) + **LangGraph** runtime.
+  Exact versions are **pinned** in `pyproject.toml`; import paths/signatures are verified
+  by an early spike (see §13 Risks).
+- **CLI framework:** `typer` (testable via `typer.testing.CliRunner`).
 - **Model:** `langchain.chat_models.init_chat_model`, default `deepseek:deepseek-chat`
   (`langchain-deepseek`, `DEEPSEEK_API_KEY`), swappable via env var.
 - **FakeChatModel:** explicit, deterministic, network-free model for tests/CI and opt-in
@@ -141,7 +144,9 @@ the deterministic `missing_critical_fields()` signal injected into state.
 `llm.py` resolves the model with this precedence:
 
 1. `--fake` CLI flag or `TRAVEL_AGENT_FAKE_MODEL=true` → **FakeChatModel** (explicit).
-2. Test/CI context (pytest) → **FakeChatModel** is the default.
+2. Test/CI: the pytest `conftest.py` and CI workflow set
+   `TRAVEL_AGENT_FAKE_MODEL=true` explicitly (no runtime pytest sniffing) so the fake
+   model is the default there via rule 1.
 3. Otherwise (normal CLI run) → real `init_chat_model(settings.model_id)`:
    - If `DEEPSEEK_API_KEY` is **missing**, raise a **clear error** instructing the user to
      set the key or pass `--fake`. **No silent fallback** — we never let a run appear to
@@ -246,7 +251,25 @@ Each milestone ends with a concrete acceptance check.
 - `make ci` green; README covers architecture, setup, structured-output fallback, and the
   v2 roadmap.
 
-## 13. v2 roadmap (out of scope for v1)
+## 13. Implementation risks & mitigations
+
+- **LangChain 1.0 / LangGraph API drift (highest risk).** `create_agent`,
+  `ToolRuntime`, `Command`, `response_format`/`structured_response`, and the sqlite
+  checkpointer (`langgraph-checkpoint-sqlite`) / `langchain-deepseek` packages have
+  version-sensitive import paths and signatures.
+  **Mitigation:** pin all versions in `pyproject.toml`; the **first plan step is a
+  throwaway spike** that wires `create_agent` + a `ToolRuntime` tool + a `Command` state
+  update + `response_format` against `FakeChatModel` and asserts the result shape. Build
+  domain logic only after the spike passes. M0 acceptance includes an import smoke.
+- **Scripted `FakeChatModel` is real work.** Driving clarify→`record_trip_request`→
+  domain tools→structured output requires a deterministic model that emits a scripted
+  sequence of `AIMessage`s with the correct `tool_calls`.
+  **Mitigation:** treat it as a first-class test fixture (queue/scripted responses, built
+  on `langchain_core` fake-model primitives); deliver it in M4 and reuse everywhere.
+- **DeepSeek structured output stability.** Covered by the §8 fallback (`ToolStrategy` /
+  explicit JSON validation), implemented only if instability is observed.
+
+## 14. v2 roadmap (out of scope for v1)
 
 - Automatic post-model preference extraction via agent middleware.
 - LangGraph `BaseStore`-backed long-term memory (swap behind `PreferenceStore` Protocol).
