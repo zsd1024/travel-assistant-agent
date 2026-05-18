@@ -32,7 +32,7 @@
 - Create: `tests/conftest.py`
 - Create: `tests/test_smoke.py`
 
-- [ ] **Step 1: Write `pyproject.toml`** (pinned versions)
+- [x] **Step 1: Write `pyproject.toml`** (pinned versions)
 
 ```toml
 [build-system]
@@ -93,7 +93,7 @@ markers = ["integration: real DeepSeek calls; skipped without DEEPSEEK_API_KEY"]
 > Requires Python ≥3.11. If a future pin fails to resolve, that is the trigger for the
 > Task 2 spike — do not unpin silently.
 
-- [ ] **Step 2: Write `.env.example`**
+- [x] **Step 2: Write `.env.example`**
 
 ```bash
 # Real model (omit to be forced into --fake / TRAVEL_AGENT_FAKE_MODEL)
@@ -110,11 +110,11 @@ LANGSMITH_TRACING=false
 LANGSMITH_API_KEY=
 ```
 
-- [ ] **Step 3: Ensure `.gitignore` covers data/build artifacts**
+- [x] **Step 3: Ensure `.gitignore` covers data/build artifacts**
 
 Confirm these lines exist (append any missing): `__pycache__/`, `*.pyc`, `.venv/`, `.env`, `*.sqlite3`, `.pytest_cache/`, `.ruff_cache/`, `.mypy_cache/`, `data/preferences.json`, `data/checkpoints.sqlite3`, `*.egg-info/`, `.coverage`.
 
-- [ ] **Step 4: Write `Makefile`**
+- [x] **Step 4: Write `Makefile`**
 
 ```make
 .PHONY: install lint type test ci run
@@ -131,7 +131,7 @@ run:
 	python -m travel_assistant
 ```
 
-- [ ] **Step 5: Write `README.md` skeleton**
+- [x] **Step 5: Write `README.md` skeleton**
 
 ```markdown
 # Travel Assistant Agent
@@ -157,7 +157,7 @@ M5 agent core · M6 ToolRuntime/Command · M7 short-term memory ·
 M8 streaming/CLI · M9 tracing + polish.
 ```
 
-- [ ] **Step 6: Write package files**
+- [x] **Step 6: Write package files**
 
 `src/travel_assistant/__init__.py`:
 ```python
@@ -199,10 +199,9 @@ if __name__ == "__main__":
     app()
 ```
 
-- [ ] **Step 7: Write `tests/conftest.py`** (forces fake model everywhere)
+- [x] **Step 7: Write `tests/conftest.py`** (forces fake model everywhere)
 
 ```python
-import os
 import pytest
 
 
@@ -212,7 +211,7 @@ def _force_fake_model(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
 ```
 
-- [ ] **Step 8: Write the failing smoke test** — `tests/test_smoke.py`
+- [x] **Step 8: Write the failing smoke test** — `tests/test_smoke.py`
 
 ```python
 from typer.testing import CliRunner
@@ -237,17 +236,17 @@ def test_langchain_imports() -> None:
     from langgraph.checkpoint.memory import InMemorySaver  # noqa: F401
 ```
 
-- [ ] **Step 9: Run install + verify failure→pass**
+- [x] **Step 9: Run install + verify failure→pass**
 
 Run: `make install && pytest -q`
 Expected: `test_langchain_imports` is the canary — if `create_agent` import path differs, it FAILS here (feeds Task 2). Otherwise all 3 tests PASS.
 
-- [ ] **Step 10: Run lint + type**
+- [x] **Step 10: Run lint + type**
 
 Run: `make lint type`
 Expected: both exit 0.
 
-- [ ] **Step 11: Commit M0**
+- [x] **Step 11: Commit M0**
 
 ```bash
 git add pyproject.toml .env.example .gitignore Makefile README.md src tests

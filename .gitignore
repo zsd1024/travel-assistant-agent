@@ -13,3 +13,5 @@ data/checkpoints.sqlite3
 *.egg-info/
 .coverage
 .DS_Store
+data/
+.claude/

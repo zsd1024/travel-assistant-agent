@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "travel-assistant"
 version = "0.1.0"
-description = "Engineering-grade CLI travel-planning agent (LangChain 1.0 + LangGraph)"
+description = "Engineering-grade CLI travel-planning agent (LangChain 1.x + LangGraph)"
 requires-python = ">=3.11"
 dependencies = [
     "langchain==1.3.1",

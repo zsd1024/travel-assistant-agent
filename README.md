@@ -1,6 +1,6 @@
 # Travel Assistant Agent
 
-Engineering-grade CLI travel-planning agent (LangChain 1.0 `create_agent` + LangGraph).
+Engineering-grade CLI travel-planning agent (LangChain 1.x `create_agent` + LangGraph).
 
 ## Status
 Scaffold (M0). See `docs/superpowers/plans/2026-05-18-travel-assistant-agent.md`.
