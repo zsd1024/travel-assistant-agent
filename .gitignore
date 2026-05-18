@@ -9,3 +9,7 @@ venv/
 .ruff_cache/
 .mypy_cache/
 data/preferences.json
+data/checkpoints.sqlite3
+*.egg-info/
+.coverage
+.DS_Store
