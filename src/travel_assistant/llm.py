@@ -1,0 +1,60 @@
+"""LLM initialization with an explicit fake/no-key policy.
+
+Precedence: explicit fake mode wins; otherwise a real model REQUIRES
+DEEPSEEK_API_KEY (missing -> clear error, never a silent fake fallback).
+"""
+from typing import Any
+
+from langchain_core.language_models import BaseChatModel
+from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
+from langchain_core.messages import AIMessage
+
+from travel_assistant.config import Settings
+
+
+class ModelConfigError(RuntimeError):
+    """No real API key available and fake mode was not explicitly requested."""
+
+
+class FakeChatModel(GenericFakeChatModel):
+    """Deterministic fake chat model usable inside ``create_agent``.
+
+    ``create_agent`` always calls ``model.bind_tools(...)`` when tools or
+    structured output are present; the stock ``GenericFakeChatModel`` does not
+    implement it (raises ``NotImplementedError``). Returning ``self`` is safe:
+    scripted ``AIMessage``s already carry any tool calls. Verified by the
+    Task 2 API spike (docs/superpowers/notes/api-spike-findings.md).
+    """
+
+    def bind_tools(self, tools: Any, **kwargs: Any) -> Any:
+        return self
+
+
+def make_fake_model(scripted: list[AIMessage] | None = None) -> BaseChatModel:
+    """Return a deterministic fake chat model (optionally scripted)."""
+    messages = scripted or [
+        AIMessage(content="FAKE MODEL: provide scripted messages for real flows")
+    ]
+    return FakeChatModel(messages=iter(messages))
+
+
+def resolve_model(settings: Settings) -> tuple[BaseChatModel, bool]:
+    """Resolve ``(model, is_fake)``.
+
+    Fake only when explicitly enabled; otherwise a missing
+    ``DEEPSEEK_API_KEY`` raises ``ModelConfigError`` (no silent fallback).
+    """
+    if settings.travel_agent_fake_model:
+        return make_fake_model(), True
+    if not settings.deepseek_api_key:
+        raise ModelConfigError(
+            "No DEEPSEEK_API_KEY set. Set it in the environment / .env, or "
+            "enable the deterministic fake model explicitly via "
+            "TRAVEL_AGENT_FAKE_MODEL=true (or the CLI --fake flag)."
+        )
+    from langchain.chat_models import init_chat_model
+
+    model = init_chat_model(
+        settings.travel_agent_model_id, api_key=settings.deepseek_api_key
+    )
+    return model, False
