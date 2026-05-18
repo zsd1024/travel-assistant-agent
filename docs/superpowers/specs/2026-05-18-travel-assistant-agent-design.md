@@ -35,9 +35,11 @@ under standard engineering hygiene (typing, tests, lint, CI).
 ## 2. Tech baseline
 
 - **Python 3.11+**, `src/` layout, packaged via `pyproject.toml`.
-- **LangChain 1.0** (`langchain.agents.create_agent`) + **LangGraph** runtime.
+- **LangChain 1.x** (`langchain.agents.create_agent`) + **LangGraph** runtime.
   Exact versions are **pinned** in `pyproject.toml`; import paths/signatures are verified
-  by an early spike (see §13 Risks).
+  by an early spike (see §13 Risks). M0-verified baseline (Python 3.11.15, 2026-05-18):
+  `langchain==1.3.1`, `langchain-core==1.4.0`, `langgraph==1.2.0`,
+  `langchain-deepseek==1.0.1`, `typer==0.23.1`, `click==8.1.8`.
 - **CLI framework:** `typer` (testable via `typer.testing.CliRunner`).
 - **Model:** `langchain.chat_models.init_chat_model`, default `deepseek:deepseek-chat`
   (`langchain-deepseek`, `DEEPSEEK_API_KEY`), swappable via env var.

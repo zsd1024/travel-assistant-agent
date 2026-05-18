@@ -4,6 +4,11 @@ import typer
 app = typer.Typer(add_completion=False, help="Travel Assistant Agent CLI")
 
 
+@app.callback()
+def main() -> None:
+    """Travel Assistant Agent CLI."""
+
+
 @app.command()
 def plan(
     fake: bool = typer.Option(False, "--fake", help="Use the deterministic fake model"),

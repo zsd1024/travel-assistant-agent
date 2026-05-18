@@ -45,19 +45,20 @@ version = "0.1.0"
 description = "Engineering-grade CLI travel-planning agent (LangChain 1.0 + LangGraph)"
 requires-python = ">=3.11"
 dependencies = [
-    "langchain==1.0.3",
-    "langgraph==1.0.2",
-    "langgraph-checkpoint-sqlite==2.0.1",
-    "langchain-deepseek==0.1.4",
-    "langchain-core==1.0.3",
-    "pydantic==2.9.2",
-    "pydantic-settings==2.6.1",
-    "typer==0.12.5",
-    "tenacity==9.0.0",
+    "langchain==1.3.1",
+    "langgraph==1.2.0",
+    "langgraph-checkpoint-sqlite==2.0.10",
+    "langchain-deepseek==1.0.1",
+    "langchain-core==1.4.0",
+    "pydantic==2.13.4",
+    "pydantic-settings==2.14.1",
+    "typer==0.23.1",
+    "click==8.1.8",
+    "tenacity==9.1.4",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest==8.3.3", "ruff==0.7.1", "mypy==1.13.0", "pytest-cov==6.0.0"]
+dev = ["pytest==8.4.2", "ruff==0.15.13", "mypy==1.20.2", "pytest-cov==6.3.0"]
 
 [project.scripts]
 travel-assistant = "travel_assistant.cli:app"
@@ -84,7 +85,13 @@ testpaths = ["tests"]
 markers = ["integration: real DeepSeek calls; skipped without DEEPSEEK_API_KEY"]
 ```
 
-> If any pinned version fails to resolve at install time, that is the trigger for the Task 2 spike to record the actually-resolved versions. Do not unpin silently.
+> **Versions empirically resolved & M0-verified on Python 3.11.15 (2026-05-18):** the
+> original draft pins (`langchain==1.0.3`, `langchain-deepseek==0.1.4`, `typer==0.12.5`,
+> `langgraph==1.0.2`) were mutually incompatible; the set above is a clean, reproducible
+> resolution (added explicit `click==8.1.8`; `langchain-deepseek` moved to the 1.x line
+> for `langchain-core` 1.x; `langgraph` 1.2.0 keeps `langgraph-prebuilt` consistent).
+> Requires Python ≥3.11. If a future pin fails to resolve, that is the trigger for the
+> Task 2 spike — do not unpin silently.
 
 - [ ] **Step 2: Write `.env.example`**
 
@@ -157,12 +164,18 @@ M8 streaming/CLI · M9 tracing + polish.
 __version__ = "0.1.0"
 ```
 
-`src/travel_assistant/cli.py`:
+`src/travel_assistant/cli.py` (a `@app.callback()` makes Typer a command group so
+app-level `--help` shows the app description; later tasks invoke `["plan", ...]`):
 ```python
 """CLI entrypoint (placeholder until M8)."""
 import typer
 
 app = typer.Typer(add_completion=False, help="Travel Assistant Agent CLI")
+
+
+@app.callback()
+def main() -> None:
+    """Travel Assistant Agent CLI."""
 
 
 @app.command()
