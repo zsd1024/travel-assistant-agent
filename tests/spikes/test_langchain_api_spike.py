@@ -27,6 +27,7 @@ from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
 from langchain_core.messages import AIMessage, ToolMessage
 from langchain_core.runnables import Runnable
 from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import Command
 from pydantic import BaseModel
 
@@ -71,7 +72,7 @@ class SpikeState(AgentState):
     spike_value: str | None
 
 
-def _make_agent() -> object:
+def _make_agent() -> CompiledStateGraph:
     """Build a minimal agent. Returns the compiled graph."""
 
     def remember(text: str, runtime: ToolRuntime) -> Command:

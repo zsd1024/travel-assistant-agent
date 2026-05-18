@@ -40,7 +40,9 @@ from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
 
 ## `create_agent`
 
-Verified signature (`inspect.signature`):
+Signature observed via `inspect.signature` on the installed package; the kwargs
+used below are additionally execution-verified by the spike (the spike itself
+does not call `inspect`):
 
 ```
 create_agent(
@@ -152,10 +154,18 @@ create_agent(
     with args matching the schema. The agent parses that tool call into
     `structured_response`, appends a synthetic
     `ToolMessage("Returning structured response: ...")`, and stops.
-- **DeepSeek (real M5 model):** `langchain-deepseek` advertises a profile, so
-  in production `ProviderStrategy` is expected (native structured output, no
-  schema-named tool call). The `ToolStrategy` path above is specific to
-  profile-less fake models used in tests.
+- **DeepSeek (real M5 model) — ⚠️ UNVERIFIED:** the spike makes **no live
+  DeepSeek call** (not possible without an API key / network), so the
+  production structured-output strategy is **not empirically known**.
+  Counter-evidence to the earlier assumption: `'profile'` does not appear in
+  `ChatDeepSeek`'s source, and `'deepseek'` is **not** in langchain's
+  `FALLBACK_MODELS_WITH_STRUCTURED_OUTPUT`, so "DeepSeek → `ProviderStrategy`"
+  is an unproven inference and may be wrong. **M5 MUST empirically
+  detect/verify the structured-output strategy during DeepSeek integration**
+  and **design for BOTH** paths — native `ProviderStrategy` *and* the
+  `ToolStrategy` fallback (schema-named tool call). Do not hard-code either.
+  The `ToolStrategy` path above is confirmed only for the profile-less fake
+  model used in tests.
 
 ## Checkpointer + thread resume
 
@@ -246,11 +256,14 @@ Pydantic domain models with the SQLite checkpointer.
    Pydantic models via the checkpointer logs an "unregistered type" warning
    that will become a hard error in a future langgraph. M5/M6 must plan for
    `allowed_msgpack_modules` / `LANGGRAPH_STRICT_MSGPACK` handling.
-10. **DeepSeek vs fake model structured-output strategy (NEW):** real
-    `langchain-deepseek` advertises a profile → `ProviderStrategy` (native
-    structured output, no schema-named tool call). The schema-named-tool-call
-    behavior is specific to profile-less fakes. M5 must not assume the test
-    path equals the production path for structured output.
+10. **DeepSeek structured-output strategy (NEW) — ⚠️ UNVERIFIED:** the spike
+    makes no live DeepSeek call, so whether real DeepSeek uses
+    `ProviderStrategy` (native) or the `ToolStrategy` fallback is **not
+    verified** (`'profile'` absent from `ChatDeepSeek` source; `'deepseek'`
+    not in `FALLBACK_MODELS_WITH_STRUCTURED_OUTPUT`). M5 must **empirically
+    detect/verify the strategy during integration** and **support BOTH**
+    `ProviderStrategy` and the `ToolStrategy` fallback. The schema-named
+    tool-call behavior is confirmed only for profile-less fakes in tests.
 
 ## Quality gate (all green at time of writing)
 
