@@ -1,9 +1,11 @@
 """Runner: load prefs -> inject into the agent's system prompt -> invoke."""
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage
+from langchain_core.runnables import RunnableConfig
 
 from travel_assistant.agent import build_agent
 from travel_assistant.checkpointer import make_checkpointer
@@ -70,6 +72,44 @@ class Runner:
             plan=out.get("structured_response"),
             messages=out.get("messages", []),
             trip_request=_as_trip_request(out.get("trip_request")),
+        )
+
+    def stream(
+        self,
+        user_id: str,
+        thread_id: str,
+        message: str,
+        on_event: Callable[[Any], None],
+    ) -> RunResult:
+        """Drive the agent's update stream for display, then return the
+        final ``RunResult`` read from the post-stream graph state.
+
+        ``stream_mode="updates"`` yields ``{node_name: state_delta}`` dicts
+        (verified empirically with the fake model). The terminal state is
+        read via ``agent.get_state(cfg)`` whose ``.values`` carries
+        ``structured_response`` / ``messages`` / ``trip_request``.
+        """
+        prefs = self._store.load_user_preferences(user_id)
+        tools = (
+            self._tools_override
+            if self._tools_override is not None
+            else build_tools(self._store, user_id)
+        )
+        agent = build_agent(
+            self._model, tools, self._checkpointer, _preferences_block(prefs)
+        )
+        cfg: RunnableConfig = {"configurable": {"thread_id": thread_id}}
+        agent_input: Any = {"messages": [("user", message)]}
+        for event in agent.stream(
+            agent_input, config=cfg, stream_mode="updates"
+        ):
+            on_event(event)
+        snap = agent.get_state(cfg)
+        values: dict[str, Any] = snap.values if snap is not None else {}
+        return RunResult(
+            plan=values.get("structured_response"),
+            messages=values.get("messages", []),
+            trip_request=_as_trip_request(values.get("trip_request")),
         )
 
 
