@@ -1,7 +1,6 @@
-"""Agent state schema. Extends the real LangChain agent-state base.
-
-The extra ``trip_request`` key is the M5 deliverable; nothing writes it yet
-(the intake tool that sets it via ``Command`` arrives in M6).
+"""Agent state schema: extends the real LangChain agent-state base with the
+structured ``trip_request``, written by the ``record_trip_request`` tool via a
+``Command`` state update.
 """
 from __future__ import annotations
 

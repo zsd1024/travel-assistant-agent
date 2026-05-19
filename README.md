@@ -82,9 +82,7 @@ Set `DEEPSEEK_API_KEY` in `.env` and run without `--fake`. The model ID defaults
 If you run without a key and without `--fake`, the CLI exits with:
 
 ```
-Cannot start: No DEEPSEEK_API_KEY set. Set it in the environment / .env, or
-enable the deterministic fake model explicitly via TRAVEL_AGENT_FAKE_MODEL=true
-(or the CLI --fake flag).
+Cannot start: No DEEPSEEK_API_KEY set. Set it in the environment / .env, or enable the deterministic fake model explicitly via TRAVEL_AGENT_FAKE_MODEL=true (or the CLI --fake flag).
 ```
 
 ---
@@ -127,6 +125,12 @@ CLI flags for `plan`:
 ## Streaming mode
 
 The agent is driven via `stream_mode="updates"`, which yields `{node_name: state_delta}` dicts. Each event is rendered by `format_stream_event` and printed to stdout as the agent runs. The final structured `TripPlan` is pretty-printed at the end of each turn.
+
+---
+
+## Clarification policy
+
+When critical trip fields are missing, the assistant asks focused, bounded follow-up questions (one question if a single field is missing, up to 2–3 if several, never looping indefinitely). This policy is currently enforced through the system prompt (`prompts.py`). `clarification.py` provides the equivalent **deterministic primitive** (`decide_clarification`) — fully unit-tested and reserved for a future middleware-enforced path (see the v2 roadmap).
 
 ---
 

@@ -23,7 +23,7 @@ def build_agent(
     checkpointer: Any,
     preferences_block: str,
 ) -> CompiledStateGraph:
-    """Assemble the travel agent. ``tools`` is empty in M5 (M6 wires them)."""
+    """Assemble the travel agent: model + wired tools + TripPlan response_format + checkpointer."""
     system_prompt = f"{SYSTEM_PROMPT}\n\n{preferences_block}"
     return create_agent(
         model=model,
