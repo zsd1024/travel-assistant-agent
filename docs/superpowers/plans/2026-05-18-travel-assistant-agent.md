@@ -1568,3 +1568,17 @@ git -c user.email=khalil19951024@gmail.com -c user.name="Travel Assistant" \
 **Type consistency:** `TripRequest`/`TripPlan`/`UserPreferences`/`ComfortLevel` names identical across T3–T11; `resolve_model`→`(model, is_fake)` used consistently; `build_runner`/`Runner.run(user_id, thread_id, message)` signature stable T7→T10; `make_checkpointer(settings)`/`build_tools(store, user_id)`/`configure_tracing(settings)` referenced exactly as defined.
 
 **Fixes applied inline:** corrected the Task 9 test imports to a single clean `from langchain_core.messages import AIMessage`.
+
+---
+
+## Post-M9 Cleanup (deferred, tracked) — CL-1: sqlite serde pin alignment
+
+**Status:** OPEN. Deferred by user decision on 2026-05-19 (during M7 review). Do **not** start before M9 is complete and approved.
+
+**Background:** M7 discovered a real pre-existing dependency-pin incompatibility — `langgraph-checkpoint-sqlite==2.0.10`'s `SqliteSaver` serializes checkpoint *metadata* via `JsonPlusSerializer.dumps()/.loads()`, but `langgraph-checkpoint==4.1.0`'s `JsonPlusSerializer` exposes only `dumps_typed`/`loads_typed`. A vanilla `SqliteSaver(conn)` therefore `AttributeError`s on the first checkpoint write. M7 ships a documented in-scope adapter, `_MetadataSerde` in `src/travel_assistant/checkpointer.py` (commit `1385771`), which makes the sqlite backend work (incl. under `LANGGRAPH_STRICT_MSGPACK=true`). The sqlite backend is opt-in; the default `memory` backend is unaffected.
+
+**Cleanup task (do AFTER M9, only when explicitly approved):**
+1. Empirically investigate a compatible `langgraph-checkpoint` / `langgraph-checkpoint-sqlite` pin pair (and any coupled `langgraph` constraint) such that a vanilla `SqliteSaver(conn)` works without `_MetadataSerde`.
+2. Verify the candidate pin set in a clean venv: full `make ci` green AND a real sqlite round-trip of `TripRequest`/`TripPlan` (incl. `LANGGRAPH_STRICT_MSGPACK=true`) with the default serde.
+3. Remove `_MetadataSerde` (and simplify `_make_sqlite_saver`) **only if** the compatible pin set is empirically proven; otherwise keep the shim and record why alignment was not possible.
+4. Constraints: keep the current 70-green baseline unchanged until the replacement is proven; this task owns the `pyproject.toml` pin change (it is out of scope for M7–M9). Do **not** investigate or change pins before this task is explicitly started.
