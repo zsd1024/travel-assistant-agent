@@ -4,9 +4,9 @@ from typing import Any
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage
-from langgraph.checkpoint.memory import InMemorySaver
 
 from travel_assistant.agent import build_agent
+from travel_assistant.checkpointer import make_checkpointer
 from travel_assistant.config import Settings
 from travel_assistant.llm import make_fake_model, resolve_model
 from travel_assistant.memory import JsonPreferenceStore
@@ -85,4 +85,4 @@ def build_runner(
     else:
         model, _ = resolve_model(settings)
     store = JsonPreferenceStore(settings.travel_agent_prefs_path)
-    return Runner(model, store, tools, InMemorySaver())
+    return Runner(model, store, tools, make_checkpointer(settings))
