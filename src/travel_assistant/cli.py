@@ -8,6 +8,7 @@ from travel_assistant.llm import ModelConfigError
 from travel_assistant.models import TripPlan
 from travel_assistant.runner import RunResult, build_runner
 from travel_assistant.streaming import format_stream_event
+from travel_assistant.tracing import configure_tracing
 
 app = typer.Typer(add_completion=False, help="Travel Assistant Agent CLI")
 
@@ -115,6 +116,9 @@ def plan(
     if new or not thread_id:
         thread_id = uuid.uuid4().hex
     typer.echo(f"(thread: {thread_id})")
+
+    if configure_tracing(settings):
+        typer.echo("(LangSmith tracing enabled)")
 
     try:
         runner = build_runner(settings)
