@@ -129,3 +129,32 @@ class UserPreferences(BaseModel):
     pace_notes: str = ""
     dietary_notes: str = ""
     home_city: str = ""
+
+
+class GeocodeResult(BaseModel):
+    """Geocoding result. Note: Amap coordinates are GCJ-02."""
+
+    city: str
+    country: str
+    province: str = ""
+    adcode: str = ""
+    longitude: float | None = None
+    latitude: float | None = None
+
+
+class RouteResult(BaseModel):
+    """Route between two places.
+
+    ``provider`` is ``"amap"`` for real Amap responses, ``"mock"`` for the
+    deterministic mock, or ``"mock-fallback"`` when an Amap provider chose to
+    delegate to its mock for a single call. ``fallback_reason`` is populated
+    only when ``provider == "mock-fallback"``.
+    """
+
+    origin: str
+    destination: str
+    mode: str
+    distance_m: int
+    duration_s: int
+    provider: str
+    fallback_reason: str = ""
