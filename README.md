@@ -61,6 +61,15 @@ All settings are loaded by `travel_assistant.config.Settings` (pydantic-settings
 | `TRAVEL_AGENT_PREFS_PATH` | `data/preferences.json` | JSON file for long-term user preferences |
 | `LANGSMITH_TRACING` | `false` | Set `true` to enable optional LangSmith tracing |
 | `LANGSMITH_API_KEY` | _(none)_ | Your LangSmith API key (only propagated if you provide it) |
+| `AMAP_API_KEY` | _(none)_ | Required only when any `TRAVEL_AGENT_PROVIDER_*=amap`; not needed for default mock runs |
+| `AMAP_BASE_URL` | `https://restapi.amap.com/v3` | Amap base URL (rarely overridden) |
+| `TRAVEL_AGENT_PROVIDER_POI` | `mock` | `mock` (default) or `amap` |
+| `TRAVEL_AGENT_PROVIDER_WEATHER` | `mock` | `mock` or `amap` |
+| `TRAVEL_AGENT_PROVIDER_ROUTE` | `mock` | `mock` or `amap` |
+| `TRAVEL_AGENT_PROVIDER_GEOCODING` | `mock` | `mock` or `amap` |
+| `AMAP_REQUEST_TIMEOUT_S` | `8.0` | httpx timeout per Amap call |
+| `AMAP_MAX_RETRIES` | `2` | tenacity retries on 5xx / transient errors |
+| `AMAP_CACHE_MAX_ENTRIES` | `256` | in-process LRU cache size |
 
 ---
 
@@ -152,6 +161,49 @@ API: `load_user_preferences(user_id)`, `save_user_preferences(prefs)`, `update_u
 
 ---
 
+## V1 — Amap (高德地图) integration
+
+Real-data providers for POI, weather, route, and geocoding via the Amap Web
+Service API. Mock providers remain the default; Amap is opt-in.
+
+**Enable Amap for a domain:**
+
+```bash
+export AMAP_API_KEY=...                 # obtain from https://lbs.amap.com
+export TRAVEL_AGENT_PROVIDER_POI=amap
+export TRAVEL_AGENT_PROVIDER_WEATHER=amap
+export TRAVEL_AGENT_PROVIDER_ROUTE=amap
+export TRAVEL_AGENT_PROVIDER_GEOCODING=amap
+```
+
+If you set any `TRAVEL_AGENT_PROVIDER_*=amap` **without** providing
+`AMAP_API_KEY`, `Settings.validated()` fails fast at startup with a clear
+error — there is no silent fallback in that case.
+
+**Per-call non-CN fallback.** Amap coverage is strongest for Chinese cities.
+For cities outside CN (e.g., Tokyo, Paris) or upstream errors, the Amap
+provider transparently falls back to the deterministic mock for that single
+call and logs the reason. `RouteResult.provider` is set to `"mock-fallback"`
+with `fallback_reason` populated in that case (POI / Weather `Activity` and
+forecast lists do not carry provenance fields — observable via logs per
+design).
+
+**The new `route_between` agent tool** is wired into the agent and returns
+`{origin, destination, mode, distance_m, duration_s, provider, fallback_reason}`
+(`mode` ∈ `{"driving", "walking", "transit", "bicycling"}`).
+
+**No real API calls in tests.** Unit tests use `respx` to mock httpx, and a
+`tests/conftest.py` fixture blocks any unintercepted outbound request.
+`AMAP_API_KEY` is deleted from the test environment by the same fixture.
+
+Flights and hotels remain mock-only in V1; real provider integration for
+those is deferred (see roadmap).
+
+See `docs/superpowers/specs/2026-05-20-v1-amap-integration-design.md` (spec)
+and `docs/superpowers/plans/2026-05-20-v1-amap-integration.md` (plan).
+
+---
+
 ## LangSmith tracing
 
 LangSmith tracing is **optional** and not required for normal runs.
@@ -184,13 +236,11 @@ All tests use the deterministic fake model (`TRAVEL_AGENT_FAKE_MODEL=true` set b
 
 ## Roadmap
 
-**Completed milestones:** M0 scaffold · M1 models · M2 tools · M3 memory · M4 LLM layer · M5 agent core · M6 ToolRuntime/Command · M7 short-term memory · M8 streaming/CLI · M9 tracing + polish.
+**Completed milestones:**
+- V0 — M0 scaffold · M1 models · M2 tools · M3 memory · M4 LLM layer · M5 agent core · M6 ToolRuntime/Command · M7 short-term memory · M8 streaming/CLI · M9 tracing + polish.
+- V1 — M10 foundations · M11 mock providers · M12 AmapHttpClient · M13 geocoding · M14 POI+weather · M15 route · M16 wiring · M17 docs.
 
-**Post-M9 cleanup:**
-- **CL-1** — sqlite serde pin alignment: replace the `_MetadataSerde` shim with a compatible `langgraph-checkpoint` / `langgraph-checkpoint-sqlite` pin pair (tracked in `docs/superpowers/plans/2026-05-18-travel-assistant-agent.md`, Post-M9 section).
+**Post-V1 cleanup:**
+- **CL-1** — sqlite serde pin alignment (see `docs/superpowers/plans/2026-05-18-travel-assistant-agent.md`, Post-M9 section).
 
-**v2 roadmap** (from `docs/superpowers/specs/2026-05-18-travel-assistant-agent-design.md` §14):
-- Automatic post-model preference extraction via agent middleware.
-- LangGraph `BaseStore`-backed long-term memory (swap behind `PreferenceStore` Protocol).
-- Real provider integrations behind the mock tool interfaces.
-- Optional hand-authored `StateGraph` (Option B) for deeper LangGraph demonstration.
+**v2 roadmap:** see `docs/roadmap/travel-assistant-v1-v3-roadmap.md`.
