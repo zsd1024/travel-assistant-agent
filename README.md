@@ -29,10 +29,10 @@ CLI (typer)
 
 **State.** `TravelAgentState` extends LangChain's `AgentState` with a `trip_request: TripRequest | None` field populated by the `record_trip_request` tool via `Command` state update.
 
-**Tools (M6).** `build_tools(store, user_id)` returns:
+**Tools (V0 + V1).** `build_tools(store, user_id, settings)` returns 8 tools:
 - `record_trip_request` — parses the user request into `TripRequest` and writes it to agent state via `Command`.
-- 5 domain tools (flights, hotels, weather, attractions, budget) — read `TripRequest` from state via `ToolRuntime`.
-- `save_preference` — writes a preference key/value to `JsonPreferenceStore` and returns a `Command`/`ToolMessage`.
+- 6 domain tools (flights, hotels, weather, attractions, budget, `route_between`) — read `TripRequest` from state via `ToolRuntime`; POI / weather / route can be backed by real Amap data when configured (see the V1 section below).
+- `save_preference` — writes a preference key/value to `JsonPreferenceStore` and returns a `Command` / `ToolMessage`.
 
 ---
 
