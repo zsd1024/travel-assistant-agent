@@ -5,9 +5,13 @@ from langchain.tools import ToolRuntime, tool
 from langchain_core.messages import ToolMessage
 from langgraph.types import Command
 
+from travel_assistant.config import Settings
 from travel_assistant.memory.repository import PreferenceStore
 from travel_assistant.models import ComfortLevel, TripRequest
-from travel_assistant.tools import attractions, budget, flights, hotels, weather
+from travel_assistant.providers.poi import get_poi_provider
+from travel_assistant.providers.route import get_route_provider
+from travel_assistant.providers.weather import get_weather_provider
+from travel_assistant.tools import budget, flights, hotels
 from travel_assistant.tools.intake import make_record_command
 from travel_assistant.tools.preferences import persist_preference
 
@@ -34,7 +38,13 @@ def _trip_request(runtime: ToolRuntime) -> TripRequest:
     return raw if isinstance(raw, TripRequest) else TripRequest.model_validate(raw)
 
 
-def build_tools(store: PreferenceStore, user_id: str) -> list[Any]:
+def build_tools(
+    store: PreferenceStore, user_id: str, settings: Settings
+) -> list[Any]:
+    poi = get_poi_provider(settings)
+    wx = get_weather_provider(settings)
+    route_p = get_route_provider(settings)
+
     @tool
     def record_trip_request(
         runtime: ToolRuntime,
@@ -80,7 +90,7 @@ def build_tools(store: PreferenceStore, user_id: str) -> list[Any]:
     def get_weather_tool(runtime: ToolRuntime) -> list[str]:
         """Get a weather outlook for the destination."""
         tr = _trip_request(runtime)
-        return weather.get_weather(tr.destination or "", tr.duration_days or 3)
+        return wx.forecast(tr.destination or "", tr.duration_days or 3)
 
     @tool
     def find_attractions_tool(runtime: ToolRuntime) -> list[dict[str, Any]]:
@@ -88,7 +98,7 @@ def build_tools(store: PreferenceStore, user_id: str) -> list[Any]:
         tr = _trip_request(runtime)
         return [
             a.model_dump()
-            for a in attractions.find_attractions(tr.destination or "", tr.interests)
+            for a in poi.search(tr.destination or "", tr.interests)
         ]
 
     @tool
@@ -102,6 +112,17 @@ def build_tools(store: PreferenceStore, user_id: str) -> list[Any]:
         return budget.estimate_budget(
             fl, ho, tr.duration_days or 3, tr.party_size
         ).model_dump()
+
+    @tool
+    def route_between(
+        runtime: ToolRuntime,
+        origin: str,
+        destination: str,
+        mode: str = "driving",
+    ) -> dict[str, Any]:
+        """Compute time and distance between two places (Amap or mock)."""
+        _ = runtime  # ToolRuntime injection point; not used here.
+        return route_p.route_between(origin, destination, mode).model_dump()
 
     @tool
     def save_preference(
@@ -142,5 +163,6 @@ def build_tools(store: PreferenceStore, user_id: str) -> list[Any]:
         get_weather_tool,
         find_attractions_tool,
         estimate_budget_tool,
+        route_between,
         save_preference,
     ]

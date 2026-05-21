@@ -48,18 +48,20 @@ class Runner:
         store: JsonPreferenceStore,
         tools_override: list[Any] | None,
         checkpointer: Any,
+        settings: Settings,
     ) -> None:
         self._model = model
         self._store = store
         self._tools_override = tools_override
         self._checkpointer = checkpointer
+        self._settings = settings
 
     def run(self, user_id: str, thread_id: str, message: str) -> RunResult:
         prefs = self._store.load_user_preferences(user_id)
         tools = (
             self._tools_override
             if self._tools_override is not None
-            else build_tools(self._store, user_id)
+            else build_tools(self._store, user_id, self._settings)
         )
         agent = build_agent(
             self._model, tools, self._checkpointer, _preferences_block(prefs)
@@ -93,7 +95,7 @@ class Runner:
         tools = (
             self._tools_override
             if self._tools_override is not None
-            else build_tools(self._store, user_id)
+            else build_tools(self._store, user_id, self._settings)
         )
         agent = build_agent(
             self._model, tools, self._checkpointer, _preferences_block(prefs)
@@ -125,4 +127,4 @@ def build_runner(
     else:
         model, _ = resolve_model(settings)
     store = JsonPreferenceStore(settings.travel_agent_prefs_path)
-    return Runner(model, store, tools, make_checkpointer(settings))
+    return Runner(model, store, tools, make_checkpointer(settings), settings)

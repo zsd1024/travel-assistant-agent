@@ -103,6 +103,32 @@ def test_domain_tool_reads_state_via_runtime(tmp_path: Path) -> None:
     assert isinstance(r.plan, TripPlan)
 
 
+def _route_call(cid: str, args: dict | None = None) -> AIMessage:
+    return AIMessage(
+        content="",
+        tool_calls=[{"name": "route_between", "args": args or {
+            "origin": "北京", "destination": "天津", "mode": "driving"
+        }, "id": cid}],
+    )
+
+
+def test_route_between_default_mock(tmp_path: Path) -> None:
+    runner = build_runner(
+        _settings(tmp_path),
+        scripted_fake_messages=[
+            _record_call("c1"),
+            _route_call("c2"),
+            _tripplan_call(),
+        ],
+    )
+    r = runner.run("u1", "t1", "plan it")
+    assert any(
+        isinstance(m, ToolMessage) and '"provider": "mock"' in str(m.content)
+        for m in r.messages
+    )
+    assert isinstance(r.plan, TripPlan)
+
+
 def test_save_preference_writes_json_store(tmp_path: Path) -> None:
     settings = _settings(tmp_path)
     runner = build_runner(
